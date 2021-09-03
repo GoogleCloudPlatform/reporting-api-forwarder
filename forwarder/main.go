@@ -20,6 +20,8 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
@@ -83,39 +85,45 @@ func main() {
 	shutdown := installPipeline(ctx)
 	defer shutdown()
 
-	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/main", mainHandler)
-	http.HandleFunc("/default", defaultHandler)
-	if err := http.ListenAndServeTLS(":30443", "cert/cert.pem", "cert/key.pem", nil); err != nil {
+	e := echo.New()
+	e.Use(middleware.CORSWithConfig(middleware.DefaultCORSConfig))
+	e.GET("/", rootHandler)
+	e.POST("/main", mainHandler)
+	e.POST("/default", defaultHandler)
+	if err := e.Start(":3000"); err != nil {
 		logger.Fatal().Msgf("failure occured during HTTP server launch process: %v", err)
 	}
 }
 
-func rootHandler(w http.ResponseWriter, r *http.Request) {
+func rootHandler(c echo.Context) error {
+	r := c.Request()
 	ctx := r.Context()
+
 	reportCounter.Add(ctx, 1)
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		logger.Error().Msgf("failed to read request body: %v", err)
+		return err
 	}
 	defer r.Body.Close()
 	logger.Info().RawJSON("report", data)
-	w.Write(data)
+	return c.String(http.StatusOK, string(data))
 }
 
-func mainHandler(w http.ResponseWriter, r *http.Request) {
-	handleReportRequest(w, r)
+func mainHandler(c echo.Context) error {
+	return handleReportRequest(c)
 }
 
-func defaultHandler(w http.ResponseWriter, r *http.Request) {
-	handleReportRequest(w, r)
+func defaultHandler(c echo.Context) error {
+	return handleReportRequest(c)
 }
 
-func handleReportRequest(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != "application/reports+json" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Content-Type not supported. The Content-Type must be application/reports+json."))
-		return
+func handleReportRequest(c echo.Context) error {
+	r := c.Request()
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "application/reports+json" {
+		logger.Error().Msgf("Content-Type header is not application/reports+json: %v", r.Header)
+		return c.String(http.StatusBadRequest, "Content-Type not supported. The Content-Type must be application/reports+json.")
 	}
 
 	data, err := io.ReadAll(r.Body)
@@ -124,13 +132,12 @@ func handleReportRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var buf map[string]interface{}
+	var buf []map[string]interface{}
 	err = json.Unmarshal(data, &buf)
 	if err != nil {
 		logger.Error().Msgf("error on parsing JSON: %v", err)
+		return c.String(http.StatusInternalServerError, err.Error())
 	}
 	logger.Info().Msgf("%v", buf)
-
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	return c.String(http.StatusOK, "OK")
 }
