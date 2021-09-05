@@ -24,7 +24,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
 	controller "go.opentelemetry.io/otel/sdk/metric/controller/basic"
@@ -34,7 +35,9 @@ import (
 
 const (
 	instrumentationVersion = "0.1.0.dev"
-	instrumentationName    = "github.com/GoogleCloudPlatform/reporting-api-forwarder"
+	instrumentationName    = "reporting-api-forwarder"
+	collectorHost          = "collector" // refer to docker-compose.yaml
+	collectorPort          = "4317"
 )
 
 var (
@@ -60,24 +63,31 @@ func init() {
 }
 
 func installPipeline(ctx context.Context) func() {
-	exporter, err := stdoutmetric.New(stdoutmetric.WithPrettyPrint())
+	client := otlpmetricgrpc.NewClient(
+		otlpmetricgrpc.WithInsecure(),
+		otlpmetricgrpc.WithEndpoint(collectorHost+":"+collectorPort),
+	)
+	exporter, err := otlpmetric.New(ctx, client)
 	if err != nil {
 		logger.Fatal().Msgf("failed to create stdoutmetric exporter: %v", err)
 	}
 
 	pusher := controller.New(
 		processor.New(
-			simple.NewWithInexpensiveDistribution(),
+			simple.NewWithExactDistribution(),
 			exporter,
 		),
 		controller.WithExporter(exporter),
 	)
+	global.SetMeterProvider(pusher.MeterProvider())
 	if err = pusher.Start(ctx); err != nil {
 		logger.Fatal().Msgf("failed to start push controller: %v", err)
 	}
-	global.SetMeterProvider(pusher.MeterProvider())
 
 	return func() {
+		if err := exporter.Shutdown(ctx); err != nil {
+			logger.Fatal().Msgf("failed to stop OTLP metric client: %v", err)
+		}
 		if err := pusher.Stop(ctx); err != nil {
 			logger.Fatal().Msgf("failed to stop push controller: %v", err)
 		}
