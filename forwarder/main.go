@@ -53,7 +53,7 @@ func init() {
 	)
 	var err error
 	reportCounter, err = meter.NewInt64Counter(
-		"report.count",
+		"reporting-api/count",
 		metric.WithDescription("number of reports"),
 		metric.WithUnit("call"),
 	)
