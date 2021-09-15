@@ -20,6 +20,12 @@ exporters:
       queue_size: 100
   logging:
     loglevel: debug
+## Uncomment prometheus section if you want to try locally
+#  prometheus:
+#    endpoint: 0.0.0.0:9990
+#    namespace: reporting-api-demo
+#    send_timestamps: true
+#    metric_expiration: 30m
 processors:
   memory_limiter:
     check_interval: 1s
@@ -29,6 +35,12 @@ processors:
 service:
   pipelines:
     metrics:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [googlecloud, logging]
+      receivers:
+      - otlp
+      processors:
+      - memory_limiter
+      - batch
+      exporters:
+      - googlecloud
+      - logging
+#      - prometheus # Uncomment this line if you want to try locally

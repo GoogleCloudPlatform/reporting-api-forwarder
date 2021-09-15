@@ -48,3 +48,25 @@ collector_1  | 2021-09-05T04:48:20.950Z info    service/collector.go:218        
 ### Integration check
 
 See the rest in [README](../README.md) in the project root.
+
+
+## For local testing
+
+This sample contains Prometheus configurations as well. So that the collector can communicate with Prometheus, you need to uncomment the configurations for Prometheus in `${PROJECT_ROOT}/collector/config.yaml`
+
+After uncommenting the section in the YAML file, you will see something like the followings:
+
+```yaml
+...(omit)...
+## Uncomment prometheus section if you want to try locally
+  prometheus:
+    endpoint: 0.0.0.0:9990
+    namespace: reporting-api-demo
+    send_timestamps: true
+    metric_expiration: 180m
+...(omit)...
+```
+
+This configuration enables the OpenTelemetry Collector to expose Reporting API related metrics via port 9990.
+
+So that the Prometheus server can communicate this OpenTelmetry Collector, you need to configure `${PROJECT_ROOT}/docker-compose.yaml` as well. See the details in the proejct root [README](../README.md).

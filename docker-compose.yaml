@@ -12,5 +12,15 @@ services:
     environment:
     - GOOGLE_APPLICATION_CREDENTIALS=/etc/otel/key.json
     ports:
-    - 4317
-    - 55681
+    - "4317:4317"
+    - "55681:55681"
+    - "9990:9990"
+    - "8888:8888"
+## Uncomment `prometheus` section if you want to try locally
+#  prometheus:
+#    image: prom/prometheus:v2.30.0
+#    volumes:
+#    - ./prometheus/config.yaml:/etc/prometheus/config.yaml
+#    entrypoint: ['prometheus', '--config.file', '/etc/prometheus/config.yaml']
+#    ports:
+#    - "9090:9090"

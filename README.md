@@ -2,9 +2,12 @@
 
 This is an unoffical Google project to demonstrate the [Reporting API](https://www.w3.org/TR/reporting/)'s endpoint server.
 This server works as a web server that receives all data from Reporting API and forwards them to [Google Cloud Monitoring](https://cloud.google.com/monitoring).
+Also, for local testing purpose, you can try [Prometheus](https://prometheus.io/) with some additional configurations.
 
 ## How to try this sample
-### Prepare report endpoint server
+
+### With Cloud Monitoring
+#### Prepare report endpoint server
 
 This repository contains two subdirectories:
 
@@ -19,7 +22,7 @@ After setting up Docker Compose (detailed in [README](./collector/README.md)), l
 $ docker-compose up
 ```
 
-### Remix glitch samples
+#### Remix glitch samples
 
 After creating [Glitch](https://glitch.com) account, remix the following two projects.
 
@@ -45,7 +48,7 @@ In `intervention-generator-<suffix>`, open `server.js`, find the following lines
 const REPORTING_ENDPOINT = "https://<the URL where you run the endpoint server>/default";
 ```
 
-### Confirm data reception
+#### Confirm data reception
 
 If the endpoint system is working correctly, you will see the following outputs on your console:
 
@@ -93,7 +96,7 @@ This is because the default configuration of OpenTelemetry Collector is set up w
 This means, your Reporting API endpoint system is working properly and it should be sending the corresponding report data to Google Cloud Monitoring.
 
 
-### Confirm Google Cloud Monitoring
+#### Confirm Google Cloud Monitoring
 
 Open your Google Cloud Console and navigate yourself to Metrics Explorer in Google Cloud Monitoring. Then, try the following values in the forms:
 
@@ -105,3 +108,34 @@ Open your Google Cloud Console and navigate yourself to Metrics Explorer in Goog
 ![Metrics Explorer](./static/image/metrics-explorer-1.png "the form in Metrics Explorer")
 
 ![Metrics Explorer](./static/image/metrics-explorer-2.png "the chart in Metrics Explorer")
+
+
+### With Prometheus
+
+This sample also provides the configuration to play with [Prometheus](https://prometheus.io/).
+
+First, you need to configure `docker-compose.yaml`. You can find the section for `prometheus` commmented out in the file. Just uncomment the section and you will see the followings:
+
+```yaml
+...(omit)...
+## Uncomment `prometheus` section if you want to try locally
+  prometheus:
+    image: prom/prometheus:v2.30.0
+    volumes:
+    - ./prometheus/config.yaml:/etc/prometheus/config.yaml
+    entrypoint: ['prometheus', '--config.file', '/etc/prometheus/config.yaml']
+    ports:
+    - "9090:9090"
+```
+
+Second, you need to configure OpenTelemetry Collector to expose metrics in the Prometheus format via HTTP. You also just need to uncomment the section for Prometheus in `collector/config.yaml`. Please refer to [README.md](./collector/README.md) for the details.
+
+After applying the changes, you can run `docker-compose` and you will see the logs from Docker Compose.
+
+```console
+$ docker-compose up
+```
+
+If the configuration is working correctly and you are getting the reports from the browser, you can access [the query page](http://localhost:9090/graph?g0.expr=sum%20by%20(type)%20(reporting_api_demo_reporting_api_count)&g0.tab=0&g0.stacked=0&g0.show_exemplars=0&g0.range_input=5m) and you will see the line chart like below:
+
+![Prometheus UI](./static/image/prometheus-1.png "the chart on Prometheus UI")
