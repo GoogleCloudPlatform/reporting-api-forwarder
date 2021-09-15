@@ -50,9 +50,10 @@ collector_1  | 2021-09-05T04:48:20.950Z info    service/collector.go:218        
 See the rest in [README](../README.md) in the project root.
 
 
-## For local testing
+## For local testing with Prometheus
 
-This sample contains Prometheus configurations as well. So that the collector can communicate with Prometheus, you need to uncomment the configurations for Prometheus in `${PROJECT_ROOT}/collector/config.yaml`
+In addition to the console exporter, this sample contains Prometheus configurations as well for local testing.
+So that the collector can communicate with Prometheus, you need to uncomment the configurations for Prometheus in `${PROJECT_ROOT}/collector/config.yaml`
 
 After uncommenting the section in the YAML file, you will see something like the followings:
 
