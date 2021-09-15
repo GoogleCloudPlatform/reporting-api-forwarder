@@ -12,7 +12,8 @@ Also, for local testing purpose, you can try [Prometheus](https://prometheus.io/
 This repository contains two subdirectories:
 
 * `forwarder`: the root of source code that contains Go web server
-* `collector`: config file
+* `collector`: the config file for OpenTelemetry Collector
+* `prometheus`: (optional) the config file for Prometheus
 
 To confirm the details of each subdirectories, please find and read `README` files in each directories.
 
