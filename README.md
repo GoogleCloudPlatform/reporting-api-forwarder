@@ -6,6 +6,11 @@ Also, for local testing purpose, you can try [Prometheus](https://prometheus.io/
 
 ## How to try this sample
 
+### Prerequisites
+
+* [Docker Engine](https://docs.docker.com/engine/install/)
+* [Docker Compose](https://docs.docker.com/compose/install/)
+
 ### With Cloud Monitoring
 #### Prepare report endpoint server
 
@@ -17,7 +22,7 @@ This repository contains two subdirectories:
 
 To confirm the details of each subdirectories, please find and read `README` files in each directories.
 
-After setting up Docker Compose (detailed in [README](./collector/README.md)), launch the Reporting API endpoint system with the following command:
+After setting up [Docker Compose](https://docs.docker.com/compose/) (detailed in [README](./collector/README.md)), launch the Reporting API endpoint system with the following command:
 
 ```console
 $ docker-compose up

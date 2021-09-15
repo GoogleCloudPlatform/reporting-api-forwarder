@@ -16,7 +16,7 @@ After obtaining the application default credentials in step 3 of the `googleclou
 **NOTE: This operation is only for the demonstration purpose. Do not apply this to your production environment. Also, please remove the permission after trying this demo.**
 
 ```
-chmod u+r ~/.config/gcloud/application_default_credentials.json
+chmod a+r ~/.config/gcloud/application_default_credentials.json
 ```
 
 ### Install Docker Compose
