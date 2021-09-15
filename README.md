@@ -33,7 +33,7 @@ $ docker-compose up
 After creating [Glitch](https://glitch.com) account, remix the following two projects.
 
 1. https://glitch.com/edit/#!/reporting-api-demo
-2. https://glitch.com/edit/#!/interevention-generator
+2. https://glitch.com/edit/#!/intervention-generator
 
 `reporting-api-demo` is the report generator, and `intervention-generator` is the source to generate intervention error that is called via the iframe DOM in the `reporting-api-demo`.
 For the name of remix projects, the recommendation is to add your own suffix to both like `reporting-api-demo-<suffix>`, such as `reporting-api-demo-yoshifumi` and `intervention-generator-yoshifumi`
