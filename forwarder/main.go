@@ -109,22 +109,14 @@ func main() {
 	e.GET("/", rootHandler)
 	e.POST("/main", mainHandler)
 	e.POST("/default", defaultHandler)
+	e.GET("/healthz", healthzHandler)
 	if err := e.StartTLS(":30443", "cert/cert.pem", "cert/key.pem"); err != nil {
 		logger.Fatal().Msgf("failure occured during HTTP server launch process: %v", err)
 	}
 }
 
 func rootHandler(c echo.Context) error {
-	r := c.Request()
-
-	data, err := io.ReadAll(r.Body)
-	if err != nil {
-		logger.Error().Msgf("failed to read request body: %v", err)
-		return err
-	}
-	defer r.Body.Close()
-	logger.Info().RawJSON("report", data)
-	return c.String(http.StatusOK, string(data))
+	return c.String(http.StatusOK, string("The reporting endpoint is /default"))
 }
 
 func mainHandler(c echo.Context) error {
@@ -133,6 +125,10 @@ func mainHandler(c echo.Context) error {
 
 func defaultHandler(c echo.Context) error {
 	return handleReportRequest(c)
+}
+
+func healthzHandler(c echo.Context) error {
+	return c.String(http.StatusOK, "OK")
 }
 
 func handleReportRequest(c echo.Context) error {

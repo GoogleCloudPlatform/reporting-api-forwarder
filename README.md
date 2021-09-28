@@ -29,6 +29,8 @@ gcloud auth application-default login
 chmod a+r ~/.config/gcloud/application_default_credentials.json
 ```
 
+Then you need to add TLS certification files to `forwarder/cert` directory. Add cert file and key file there with the name `cert.pem` and `key.pem`.
+
 After setting up [Docker Compose](https://docs.docker.com/compose/) (detailed in [README](./collector/README.md)), launch the Reporting API endpoint system with the following command:
 
 ```console
