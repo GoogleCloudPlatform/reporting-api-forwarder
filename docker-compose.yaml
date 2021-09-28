@@ -13,7 +13,7 @@ services:
     - GOOGLE_APPLICATION_CREDENTIALS=/etc/otel/key.json
     ports:
     - "4317:4317"
-    - "55681:55681"
+    - "4318:4318"
     - "9990:9990"
     - "8888:8888"
 ## Uncomment `prometheus` section if you want to try locally

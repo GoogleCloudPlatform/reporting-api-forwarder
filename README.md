@@ -1,7 +1,7 @@
 # Reporting API forwarder
 
 This is an unoffical Google project to demonstrate the [Reporting API](https://www.w3.org/TR/reporting/)'s endpoint server.
-This server works as a web server that receives all data from Reporting API and forwards them to [Google Cloud Monitoring](https://cloud.google.com/monitoring).
+This server works as a web server that receives all data from Reporting API and forwards them to monitoring tools such as [Google Cloud Monitoring](https://cloud.google.com/monitoring).
 Also, for local testing purpose, you can try [Prometheus](https://prometheus.io/) with some additional configurations.
 
 ## How to try this sample
@@ -20,12 +20,51 @@ This repository contains two subdirectories:
 * `collector`: the config file for OpenTelemetry Collector
 * `prometheus`: (optional) the config file for Prometheus
 
-To confirm the details of each subdirectories, please find and read `README` files in each directories.
+To confirm the details of each subdirectories, please find and read `README` files for detailed instructions.
+
+To run this sample, you need to set up Google Cloud default credentials. Run the following commands for this demo.
+
+```console
+gcloud auth application-default login
+chmod a+r ~/.config/gcloud/application_default_credentials.json
+```
 
 After setting up [Docker Compose](https://docs.docker.com/compose/) (detailed in [README](./collector/README.md)), launch the Reporting API endpoint system with the following command:
 
 ```console
 $ docker-compose up
+```
+
+Then you will see the logs like the followings:
+
+```console
+ docker-compose up
+WARNING: Found orphan containers (reporting-api-forwarder_prometheus_1, reporting-api-forwarder_reporter_1) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up.
+Starting reporting-api-forwarder_collector_1 ... done
+Starting reporting-api-forwarder_forwarder_1 ... done
+Attaching to reporting-api-forwarder_forwarder_1, reporting-api-forwarder_collector_1
+forwarder_1  | {"severity":"INFO","timestamp":"2021-09-28T07:36:23.080139909Z","message":"Starting Reporting API forwarder: version 0.1.0.dev"}
+forwarder_1  | ⇨ https server started on [::]:30443
+collector_1  | 2021-09-28T07:36:23.473Z info    service/collector.go:303        Starting otelcontribcol...      {"Version": "v0.34.0", "NumCPU": 12}
+collector_1  | 2021-09-28T07:36:23.474Z info    service/collector.go:242        Loading configuration...
+...(omit)...
+collector_1  | 2021-09-28T07:36:23.480Z info    service/collector.go:218        Everything is ready. Begin running and processing data.
+```
+
+As you can confirm in `docker-compose.yaml`, this demo uses the following ports:
+
+|**Port in localhost**|**Service using the port**|**Port in services**|**Purpose**|
+|30443|forwarder|30443|HTTPS server endpoint|
+|4317|collector|4317|OTLP gRPC endpoint|
+|4318|collector|4318|OTLP HTTP endpoint|
+|9990|collector|9990|Prometheus exporter endpoint|
+|8888|collector|8888|Colletor's metrics exporting endpoint|
+|9090|prometheus|9090|Prometheus UI's endpoint|
+
+**Note:** The instruction to change file permission of the credntial is just for this demonstration purpose, so after running this demo, please overwrite the permission as it was.
+
+```
+chmod go-r ~/.config/gcloud/application_default_credentials.json
 ```
 
 #### Remix glitch samples
@@ -53,6 +92,8 @@ In `intervention-generator-<suffix>`, open `server.js`, find the following lines
 ```javascript
 const REPORTING_ENDPOINT = "https://<the URL where you run the endpoint server>/default";
 ```
+
+**NOTE:** This demo requires `OPTION` HTTP method to work, so some handy solutions such as ngrok can't be an option. [This article](https://web.dev/how-to-use-local-https/) explains how to setup local environment for HTTPS connection from glitch to the forwarder.
 
 #### Confirm data reception
 
@@ -142,6 +183,6 @@ After applying the changes, you can run `docker-compose` and you will see the lo
 $ docker-compose up
 ```
 
-If the configuration is working correctly and you are getting the reports from the browser, you can access [the query page](http://localhost:9090/graph?g0.expr=sum%20by%20(type)%20(reporting_api_demo_reporting_api_count)&g0.tab=0&g0.stacked=0&g0.show_exemplars=0&g0.range_input=5m) and you will see the line chart like below:
+If the configuration is working correctly and you are getting the reports from the browser, you can access [the query page (http://localhost:9090)](http://localhost:9090/graph?g0.expr=sum%20by%20(type)%20(reporting_api_demo_reporting_api_count)&g0.tab=0&g0.stacked=0&g0.show_exemplars=0&g0.range_input=5m) and you will see the line chart like below:
 
 ![Prometheus UI](./static/image/prometheus-1.png "the chart on Prometheus UI")

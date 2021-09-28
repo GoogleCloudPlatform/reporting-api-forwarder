@@ -103,6 +103,7 @@ func main() {
 
 	e := echo.New()
 	e.HideBanner = true
+	e.HidePort = true
 	// In order to hand Reporting API, the reporting endpoint needs to handle CORS
 	e.Use(middleware.CORSWithConfig(middleware.DefaultCORSConfig))
 	e.GET("/", rootHandler)
