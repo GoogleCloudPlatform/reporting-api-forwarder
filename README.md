@@ -53,7 +53,8 @@ collector_1  | 2021-09-28T07:36:23.480Z info    service/collector.go:218        
 
 As you can confirm in `docker-compose.yaml`, this demo uses the following ports:
 
-|**Port in localhost**|**Service using the port**|**Port in services**|**Purpose**|
+|Port in localhost|Service using the port|Port in services|Purpose|
+|-----------------|----------------------|----------------|-------|
 |30443|forwarder|30443|HTTPS server endpoint|
 |4317|collector|4317|OTLP gRPC endpoint|
 |4318|collector|4318|OTLP HTTP endpoint|
