@@ -217,6 +217,8 @@ If the configuration is working correctly and you are getting the reports from t
 
 ![Prometheus UI](./static/image/prometheus-1.png "the chart on Prometheus UI")
 
+Also you can access to [the pre-defined dashboard of Grafana](http://localhost:3000/d/uhbXu_H7z/reporting-api?orgId=1).
+
 ### Standalone
 
 If you already uses OpenTelemetry Collector and have the monitoring backend, you can run `forwarder` alone.
