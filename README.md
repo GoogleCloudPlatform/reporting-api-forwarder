@@ -65,6 +65,8 @@ gcloud services eanble monitoring
 After setting up Google Cloud project and credentials, you need to run the fowarder (reporting API endpoint).
 Specify TLS certification files with the environment variables `CERT_FILE` and `KEY_FILE`. The default value is set to `cert/cert.pem` and `cert/key.pem`.
 
+Then you need to add TLS certification files to `forwarder/cert` directory. Add cert file and key file there with the name `cert.pem` and `key.pem`.
+
 After setting up [Docker Compose](https://docs.docker.com/compose/) (detailed in [README](./collector/README.md)), launch the Reporting API endpoint system with the following command:
 
 ```console
