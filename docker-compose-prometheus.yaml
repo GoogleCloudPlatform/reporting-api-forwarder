@@ -1,0 +1,22 @@
+version: "3.9"
+services:
+  forwarder:
+    build: ./forwarder
+    ports:
+    - "30443:30443"
+  collector:
+    image: otel/opentelemetry-collector-contrib
+    volumes:
+    - ./collector/config-prometheus.yaml:/etc/otel/config.yaml
+    ports:
+    - "4317:4317"
+    - "4318:4318"
+    - "9990:9990"
+    - "8888:8888"
+  prometheus:
+    image: prom/prometheus:v2.30.0
+    volumes:
+    - ./prometheus/config.yaml:/etc/prometheus/config.yaml
+    entrypoint: ['prometheus', '--config.file', '/etc/prometheus/config.yaml']
+    ports:
+    - "9090:9090"

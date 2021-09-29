@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -36,13 +38,15 @@ import (
 const (
 	instrumentationVersion = "0.1.0.dev"
 	instrumentationName    = "reporting-api-forwarder"
-	collectorHost          = "collector" // refer to docker-compose.yaml
-	collectorPort          = "4317"
 )
 
 var (
-	meter metric.Meter
+	collectorHost string = "127.0.0.1"
+	collectorPort string = "4317"
+	certFile      string
+	keyFile       string
 
+	meter         metric.Meter
 	reportCounter metric.Int64Counter
 )
 
@@ -59,6 +63,22 @@ func init() {
 	)
 	if err != nil {
 		panic(err)
+	}
+
+	collectorAddr := os.Getenv("COLLECTOR_ADDR")
+	if collectorAddr != "" {
+		addr := strings.Split(collectorAddr, ":")
+		collectorHost = addr[0]
+		collectorPort = addr[1]
+	}
+
+	certFile = os.Getenv("CERT_FILE")
+	if certFile == "" {
+		certFile = "cert/cert.pem"
+	}
+	keyFile = os.Getenv("KEY_FILE")
+	if keyFile == "" {
+		keyFile = "cert/key.pem"
 	}
 }
 
@@ -96,6 +116,7 @@ func installPipeline(ctx context.Context) func() {
 
 func main() {
 	logger.Info().Msgf("Starting Reporting API forwarder: version %s", instrumentationVersion)
+	logger.Info().Msgf("Collector endpoint: %s", collectorHost+":"+collectorPort)
 
 	ctx := context.Background()
 	shutdown := installPipeline(ctx)
@@ -110,8 +131,9 @@ func main() {
 	e.POST("/main", mainHandler)
 	e.POST("/default", defaultHandler)
 	e.GET("/healthz", healthzHandler)
-	if err := e.StartTLS(":30443", "cert/cert.pem", "cert/key.pem"); err != nil {
-		logger.Fatal().Msgf("failure occured during HTTP server launch process: %v", err)
+	if err := e.StartTLS(":30443", certFile, keyFile); err != nil {
+		logger.Fatal().Msgf("failure occured during HTTP server launch process: %v."+
+			"Check docker cache if you added files already and running this app in docker.", err)
 	}
 }
 
