@@ -4,22 +4,13 @@ receivers:
       grpc:
       http:
 exporters:
-  googlecloud:
-    project: ${PROJECT_ID}
-    user_agent: reporting-api-collector {{version}}
-    use_insecure: true
-    timeout: 30s
-    retry_on_failure:
-      enabled: true
-      initial_interval: 5s
-      max_interval: 30s
-      max_elapsed_time: 120s
-    sending_queue:
-      enabled: true
-      num_consumers: 2
-      queue_size: 100
   logging:
     loglevel: debug
+  prometheus:
+    endpoint: 0.0.0.0:9990
+    namespace: reporting-api-demo
+    send_timestamps: true
+    metric_expiration: 30m
 processors:
   memory_limiter:
     check_interval: 1s
@@ -35,5 +26,5 @@ service:
       - memory_limiter
       - batch
       exporters:
-      - googlecloud
       - logging
+      - prometheus
