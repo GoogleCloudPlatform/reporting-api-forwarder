@@ -6,6 +6,8 @@ services:
     - "30443:30443"
     environment:
     - COLLECTOR_ADDR=collector:4317
+    depends_on:
+    - collector
   collector:
     image: otel/opentelemetry-collector-contrib
     volumes:
