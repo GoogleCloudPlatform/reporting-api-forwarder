@@ -12,6 +12,7 @@ This repository contains the following subdirectories:
 * `forwarder`: the main component that receives reports and forwards them to OpenTelemetry Collector
 * `collector`: the config file for OpenTelemetry Collector
 * `prometheus`: (optional) the config file for Prometheus
+* `grafana`: (optional) the config file for Grafana
 
 To confirm the details of each subdirectories, please find and read `README` files for detailed instructions.
 
@@ -190,9 +191,9 @@ Open your Google Cloud Console and navigate yourself to Metrics Explorer in Goog
 ![Metrics Explorer](./static/image/metrics-explorer-2.png "the chart in Metrics Explorer")
 
 
-### With Prometheus
+### With Prometheus and Grafana
 
-This sample also provides the configuration to play with [Prometheus](https://prometheus.io/).
+This sample also provides the configuration to play with [Prometheus](https://prometheus.io/) and [Grafana](https://grafana.com/)
 
 You can run `docker-compose` with the configuration file for Prometheus and you will see the logs from Docker Compose.
 
@@ -253,3 +254,11 @@ If you replace the certification files and observe no changes with `forwarder` c
 docker-compose build --no-cache
 ```
 
+### Permission error of config files
+
+If you face the following permission errors of reading config files, just add read access of those files to others: `chmod a+r path/to/config.file`.
+
+```console
+collector_1   | 2021-09-29T06:04:41.745Z        info    service/collector.go:242        Loading configuration...
+collector_1   | Error: cannot load configuration's parser: error loading config file "/etc/otel/config.yaml": unable to read the file /etc/otel/config.yaml: open /etc/otel/config.yaml: permission denied
+```

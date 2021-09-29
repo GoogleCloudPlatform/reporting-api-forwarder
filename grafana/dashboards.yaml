@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+- name: 'Reporting API demo'
+  orgId: 1
+  folder: ''
+  type: file
+  disableDeletion: true
+  updateIntervalseconds: 10
+  allowUiUpdates: true
+  editable: true
+  options:
+    path: /var/lib/grafana/dashboards
