@@ -45,8 +45,12 @@ var (
 	collectorPort string = "4317"
 	certFile      string
 	keyFile       string
+	enableTLS     bool = true
 
-	meter         metric.Meter
+	// meter is the global meter to send Reporting API relevant metrics
+	meter metric.Meter
+
+	// reportCounter is the counter of reports
 	reportCounter metric.Int64Counter
 )
 
@@ -64,14 +68,12 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-
 	collectorAddr := os.Getenv("COLLECTOR_ADDR")
 	if collectorAddr != "" {
 		addr := strings.Split(collectorAddr, ":")
 		collectorHost = addr[0]
 		collectorPort = addr[1]
 	}
-
 	certFile = os.Getenv("CERT_FILE")
 	if certFile == "" {
 		certFile = "cert/cert.pem"
@@ -80,8 +82,12 @@ func init() {
 	if keyFile == "" {
 		keyFile = "cert/key.pem"
 	}
+	if os.Getenv("ENABLE_TLS") == "0" {
+		enableTLS = false
+	}
 }
 
+// installPipeline sets up the initial pipeline for exporting metrics via OpenTelemetry.
 func installPipeline(ctx context.Context) func() {
 	client := otlpmetricgrpc.NewClient(
 		otlpmetricgrpc.WithInsecure(),
@@ -131,9 +137,16 @@ func main() {
 	e.POST("/main", mainHandler)
 	e.POST("/default", defaultHandler)
 	e.GET("/healthz", healthzHandler)
-	if err := e.StartTLS(":30443", certFile, keyFile); err != nil {
-		logger.Fatal().Msgf("failure occured during HTTP server launch process: %v."+
-			"Check docker cache if you added files already and running this app in docker.", err)
+
+	if enableTLS {
+		if err := e.StartTLS(":30443", certFile, keyFile); err != nil {
+			logger.Fatal().Msgf("failure occured during HTTP server launch process: %v."+
+				"Check docker cache if you added files already and running this app in docker.", err)
+		}
+	} else {
+		if err := e.Start(":8080"); err != nil {
+			logger.Fatal().Msgf("failure occured on launching HTTP server: %v", err)
+		}
 	}
 }
 
