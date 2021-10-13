@@ -10,4 +10,7 @@ node_modules/
 .npm
 .vscode-test
 
+*.tfstate*
+.terraform*
+
 forwarder/cert/*
