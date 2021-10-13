@@ -20,9 +20,9 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
+	// Using echo for easy CORS support
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.opentelemetry.io/otel/attribute"
@@ -41,8 +41,7 @@ const (
 )
 
 var (
-	collectorHost string = "127.0.0.1"
-	collectorPort string = "4317"
+	collectorAddr string
 	certFile      string
 	keyFile       string
 
@@ -51,25 +50,18 @@ var (
 )
 
 func init() {
-	meter = global.GetMeterProvider().Meter(
+	meter := metric.Must(global.Meter(
 		instrumentationName,
 		metric.WithInstrumentationVersion(instrumentationVersion),
-	)
-	var err error
-	reportCounter, err = meter.NewInt64Counter(
+	))
+	reportCounter = meter.NewInt64Counter(
 		"reporting-api/count",
 		metric.WithDescription("number of reports"),
 		metric.WithUnit("call"),
 	)
-	if err != nil {
-		panic(err)
-	}
-
 	collectorAddr := os.Getenv("COLLECTOR_ADDR")
 	if collectorAddr != "" {
-		addr := strings.Split(collectorAddr, ":")
-		collectorHost = addr[0]
-		collectorPort = addr[1]
+		collectorAddr = "127.0.0.1:4317"
 	}
 
 	certFile = os.Getenv("CERT_FILE")
@@ -85,11 +77,11 @@ func init() {
 func installPipeline(ctx context.Context) func() {
 	client := otlpmetricgrpc.NewClient(
 		otlpmetricgrpc.WithInsecure(),
-		otlpmetricgrpc.WithEndpoint(collectorHost+":"+collectorPort),
+		otlpmetricgrpc.WithEndpoint(collectorAddr),
 	)
 	exporter, err := otlpmetric.New(ctx, client)
 	if err != nil {
-		logger.Fatal().Msgf("failed to create stdoutmetric exporter: %v", err)
+		logger.Fatal().Msgf("failed to create stdout metric exporter: %v", err)
 	}
 
 	pusher := controller.New(
@@ -116,7 +108,7 @@ func installPipeline(ctx context.Context) func() {
 
 func main() {
 	logger.Info().Msgf("Starting Reporting API forwarder: version %s", instrumentationVersion)
-	logger.Info().Msgf("Collector endpoint: %s", collectorHost+":"+collectorPort)
+	logger.Info().Msgf("Collector endpoint: %s", collectorAddr)
 
 	ctx := context.Background()
 	shutdown := installPipeline(ctx)
@@ -168,7 +160,9 @@ func handleReportRequest(c echo.Context) error {
 	if err != nil {
 		logger.Error().Msgf("error on reading data: %v", err)
 	}
-	defer r.Body.Close()
+	if err := r.Body.Close(); err != nil {
+		return err
+	}
 
 	var buf []report
 	err = json.Unmarshal(data, &buf)
@@ -191,63 +185,55 @@ func handleReportRequest(c echo.Context) error {
 func extractKeyValues(r report, t time.Time) []attribute.KeyValue {
 	// NOTE: from Go1.17, use time.Time#UnixMilli
 	now := t.UnixNano() / int64(time.Millisecond)
-	kvs := make([]attribute.KeyValue, 4)
-	kvs[0] = attribute.String("type", r.Typ)
-	kvs[1] = attribute.String("url", r.URL)
-	kvs[2] = attribute.String("useragent", r.UserAgent)
-	kvs[3] = attribute.Int64("generated", now-int64(r.Age))
+	kvs := []attribute.KeyValue{
+		attribute.String("type", r.Typ),
+		attribute.String("url", r.URL),
+		attribute.String("useragent", r.UserAgent),
+		attribute.Int64("generated", now-int64(r.Age)),
+	}
 	body := r.Body
 	switch r.Typ {
 	case "csp-violation":
 		kvs = append(kvs,
-			attribute.String("blocked-url", body["blockedURL"].(string)),
-			attribute.String("dispotision", body["disposition"].(string)),
-			attribute.String("document-url", body["documentURL"].(string)),
-			attribute.String("effective-directive", body["effectiveDirective"].(string)),
-			attribute.String("original-policy", body["originalPolicy"].(string)),
-			attribute.String("referrer", body["referrer"].(string)),
-			attribute.String("sample", body["sample"].(string)),
-			attribute.Int("status-code", int(body["statusCode"].(float64))),
+			attribute.String("blocked-url", body.BlockedURL),
+			attribute.String("dispotision", body.Disposition),
+			attribute.String("document-url", body.DocumentURL),
+			attribute.String("effective-directive", body.EffectiveDirective),
+			attribute.String("original-policy", body.OriginalPolicy),
+			attribute.String("referrer", body.Referrer),
+			attribute.String("sample", body.Sample),
+			attribute.Int("status-code", body.StatusCode),
 		)
 	case "deprecation":
 		kvs = append(kvs,
-			attribute.Int("column-number", int(body["columnNumber"].(float64))),
-			attribute.Int("line-number", int(body["lineNumber"].(float64))),
-			attribute.String("id", body["id"].(string)),
-			attribute.String("message", body["message"].(string)),
-			attribute.String("source-file", body["sourceFile"].(string)),
+			attribute.Int("column-number", body.ColumnNumber),
+			attribute.Int("line-number", body.LineNumber),
+			attribute.String("id", body.ID),
+			attribute.String("message", body.Message),
+			attribute.String("source-file", body.SourceFile),
 		)
-	case "permissions-policy-violation":
+	case "permissions-policy-violation", "document-policy-violation":
 		kvs = append(kvs,
-			attribute.Int("column-number", int(body["columnNumber"].(float64))),
-			attribute.Int("line-number", int(body["lineNumber"].(float64))),
-			attribute.String("dispotision", body["disposition"].(string)),
-			attribute.String("message", body["message"].(string)),
-			attribute.String("policy-id", body["policyId"].(string)),
-			attribute.String("source-file", body["sourceFile"].(string)),
-		)
-	case "document-policy-violation":
-		kvs = append(kvs,
-			attribute.Int("column-number", int(body["columnNumber"].(float64))),
-			attribute.Int("line-number", int(body["lineNumber"].(float64))),
-			attribute.String("dispotision", body["disposition"].(string)),
-			attribute.String("message", body["message"].(string)),
-			attribute.String("policy-id", body["policyId"].(string)),
-			attribute.String("source-file", body["sourceFile"].(string)),
+			attribute.Int("column-number", body.ColumnNumber),
+			attribute.Int("line-number", body.LineNumber),
+			attribute.String("id", body.ID),
+			attribute.String("message", body.Message),
+			attribute.String("policy-id", body.PolicyID),
+			attribute.String("source-file", body.SourceFile),
 		)
 	case "coep":
 		kvs = append(kvs,
-			attribute.String("blocked-url", body["blockedURL"].(string)),
-			attribute.String("dispotision", body["disposition"].(string)),
-			attribute.String("destination", body["destination"].(string)),
+			attribute.String("blocked-url", body.BlockedURL),
+			attribute.String("dispotision", body.Disposition),
+			attribute.String("destination", body.Destination),
 		)
 	case "intervention":
 		kvs = append(kvs,
-			attribute.Int("column-number", int(body["columnNumber"].(float64))),
-			attribute.Int("line-number", int(body["lineNumber"].(float64))),
-			attribute.String("id", body["id"].(string)),
-			attribute.String("message", body["message"].(string)),
-			attribute.String("source-file", body["sourceFile"].(string)),
+			attribute.Int("column-number", body.ColumnNumber),
+			attribute.Int("line-number", body.LineNumber),
+			attribute.String("id", body.ID),
+			attribute.String("message", body.Message),
+			attribute.String("source-file", body.SourceFile),
 		)
 	default:
 	}

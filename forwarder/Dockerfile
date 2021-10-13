@@ -22,5 +22,5 @@ FROM gcr.io/distroless/base-debian11
 WORKDIR /app
 COPY --from=builder /src/server /app/server
 COPY ./cert cert/
-EXPOSE 30443
+EXPOSE 8080 30443
 CMD ["/app/server"]
