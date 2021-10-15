@@ -146,8 +146,7 @@ func main() {
 }
 
 func rootHandler(c echo.Context) error {
-	now := time.Now()
-	return c.String(http.StatusOK, fmt.Sprintf("%v: The reporting endpoint is /default", now))
+	return c.String(http.StatusOK, fmt.Sprintf("%v: The reporting endpoint is /default", time.Now()))
 }
 
 func mainHandler(c echo.Context) error {
