@@ -21,6 +21,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// logger is the common logger in the application.
+// Using zerolog for structured JSON logs.
 var logger zerolog.Logger
 
 func init() {

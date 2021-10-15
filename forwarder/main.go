@@ -63,8 +63,8 @@ func init() {
 		metric.WithDescription("number of reports"),
 		metric.WithUnit("call"),
 	)
-	collectorAddr := os.Getenv("COLLECTOR_ADDR")
-	if collectorAddr != "" {
+	collectorAddr = os.Getenv("COLLECTOR_ADDR")
+	if collectorAddr == "" {
 		collectorAddr = "127.0.0.1:4317"
 	}
 	certFile = os.Getenv("CERT_FILE")
@@ -144,7 +144,8 @@ func main() {
 }
 
 func rootHandler(c echo.Context) error {
-	return c.String(http.StatusOK, string("The reporting endpoint is /default"))
+	now := time.Now()
+	return c.String(http.StatusOK, string("%v: The reporting endpoint is /default"))
 }
 
 func mainHandler(c echo.Context) error {
@@ -177,6 +178,7 @@ func handleReportRequest(c echo.Context) error {
 	if err := r.Body.Close(); err != nil {
 		return err
 	}
+	logger.Info().Msgf("accepted %v bytes report", len(data))
 
 	var buf []report
 	err = json.Unmarshal(data, &buf)
