@@ -126,6 +126,7 @@ func main() {
 	e.HideBanner = true
 	e.HidePort = true
 	// In order to hand Reporting API, the reporting endpoint needs to handle CORS
+	// TODO(yoshifumi): consider adding the config to set allow origin externally
 	e.Use(middleware.CORSWithConfig(middleware.DefaultCORSConfig))
 	e.GET("/", rootHandler)
 	e.POST("/main", mainHandler)
