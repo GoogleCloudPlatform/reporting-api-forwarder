@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -44,8 +45,12 @@ var (
 	collectorAddr string
 	certFile      string
 	keyFile       string
+	enableTLS     bool = true
 
-	meter         metric.Meter
+	// meter is the global meter to send Reporting API relevant metrics
+	meter metric.Meter
+
+	// reportCounter is the counter of reports
 	reportCounter metric.Int64Counter
 )
 
@@ -59,11 +64,10 @@ func init() {
 		metric.WithDescription("number of reports"),
 		metric.WithUnit("call"),
 	)
-	collectorAddr := os.Getenv("COLLECTOR_ADDR")
-	if collectorAddr != "" {
+	collectorAddr = os.Getenv("COLLECTOR_ADDR")
+	if collectorAddr == "" {
 		collectorAddr = "127.0.0.1:4317"
 	}
-
 	certFile = os.Getenv("CERT_FILE")
 	if certFile == "" {
 		certFile = "cert/cert.pem"
@@ -72,8 +76,12 @@ func init() {
 	if keyFile == "" {
 		keyFile = "cert/key.pem"
 	}
+	if os.Getenv("ENABLE_TLS") == "0" {
+		enableTLS = false
+	}
 }
 
+// installPipeline sets up the initial pipeline for exporting metrics via OpenTelemetry.
 func installPipeline(ctx context.Context) func() {
 	client := otlpmetricgrpc.NewClient(
 		otlpmetricgrpc.WithInsecure(),
@@ -118,19 +126,27 @@ func main() {
 	e.HideBanner = true
 	e.HidePort = true
 	// In order to hand Reporting API, the reporting endpoint needs to handle CORS
+	// TODO(yoshifumi): consider adding the config to set allow origin externally
 	e.Use(middleware.CORSWithConfig(middleware.DefaultCORSConfig))
 	e.GET("/", rootHandler)
 	e.POST("/main", mainHandler)
 	e.POST("/default", defaultHandler)
 	e.GET("/healthz", healthzHandler)
-	if err := e.StartTLS(":30443", certFile, keyFile); err != nil {
-		logger.Fatal().Msgf("failure occured during HTTP server launch process: %v."+
-			"Check docker cache if you added files already and running this app in docker.", err)
+
+	if enableTLS {
+		if err := e.StartTLS(":30443", certFile, keyFile); err != nil {
+			logger.Fatal().Msgf("failure occured during HTTP server launch process: %v."+
+				"Check docker cache if you added files already and running this app in docker.", err)
+		}
+	} else {
+		if err := e.Start(":8080"); err != nil {
+			logger.Fatal().Msgf("failure occured on launching HTTP server: %v", err)
+		}
 	}
 }
 
 func rootHandler(c echo.Context) error {
-	return c.String(http.StatusOK, string("The reporting endpoint is /default"))
+	return c.String(http.StatusOK, fmt.Sprintf("%v: The reporting endpoint is /default", time.Now()))
 }
 
 func mainHandler(c echo.Context) error {
@@ -163,6 +179,7 @@ func handleReportRequest(c echo.Context) error {
 	if err := r.Body.Close(); err != nil {
 		return err
 	}
+	logger.Info().Msgf("accepted %v bytes report", len(data))
 
 	var buf []report
 	err = json.Unmarshal(data, &buf)

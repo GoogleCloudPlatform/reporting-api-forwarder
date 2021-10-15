@@ -26,7 +26,11 @@ processors:
     limit_mib: 4000
     spike_limit_mib: 800
   batch:
+extensions:
+  health_check:
 service:
+  extensions:
+   - health_check
   pipelines:
     metrics:
       receivers:
