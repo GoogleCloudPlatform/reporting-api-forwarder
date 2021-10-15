@@ -19,4 +19,4 @@ metadata:
   name: reporting-api-cert
 spec:
   domains:
-  - reporting-api.ymotongpoo.com
+  - REPLACE_WITH_YOUR_COSTOM_DOMAIN # eg. reporting.example.com

@@ -27,10 +27,16 @@ The interaction of each components is described as below:
   * If you run the forwarder in Docker or to run `docker compose`
 
 * [Docker Compose](https://docs.docker.com/compose/install/)
-  * For the cases "with Cloud Monitorig" and "with Prometheus"
+  * For the cases "With Cloud Monitorig" and "with Prometheus"
 
-* Google Cloud project
-  * For the case "with Cloud Monitoring"
+* Google Cloud project and [`gcloud`](https://cloud.google.com/sdk/docs/install) command
+  * For the case "With Cloud Monitoring" and "Running on Google Kubernetes Engine"
+
+* [`kubectl`](https://kubernetes.io/docs/tasks/tools/#kubectl) and [`skaffold`](https://skaffold.dev/docs/install/)
+  * For the case "Running on Google Kubernetes Engine"
+
+`kubectl` and `skaffold` are also available via `gcloud components install` command. See [the document](https://cloud.google.com/sdk/docs/components) on how to install those command via `gcloud`.
+
 ### With Cloud Monitoring
 
 #### Prepare Google Cloud project
@@ -219,11 +225,262 @@ If the configuration is working correctly and you are getting the reports from t
 
 Also you can access to [the pre-defined dashboard of Grafana](http://localhost:3000/d/uhbXu_H7z/reporting-api?orgId=1).
 
+
+### Running on Google Kubernetes Engine
+
+This repository also contains the way to run the demo on [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine) to share the demo in public with the team. Note that this is just a demo, so **do not use this demo as-is for production.**
+#### Prerequisites
+
+To deploy this demo onto a GKE Cluster, you need to have the following commands in your environment.
+
+* `gcloud`
+* [Docker Engine](https://docs.docker.com/engine/install/)
+* [`kubectl`](https://kubernetes.io/docs/reference/kubectl/overview/)
+* [`skaffold`](https://skaffold.dev/)
+
+Make sure to install these commands in advance. Also, the demo needs to have **a custom domain** (eg. `reporting.example.com`). You will need to add a DNS record for it later on.
+
+#### Set up Google Cloud
+
+In order to deploy and run the demo on GKE, you need to have a couple of set up in addition:
+
+* Prepare a custom domain for the demo
+* Enabling APIs for GCE, GKE, Cloud Monitoring, Cloud Logging, Container Registry
+* Create a GKE cluster
+* Reserve static IP address
+* Initialize `kubectl` and `skaffold` command
+
+##### Prepare a custom domain
+
+You can use any registerer to obtain the custom domain for the demo if you don't have any. If you already have one, you may want to add a subdomain for the demo. The external IP address will be reserved later.
+##### Enabling Google Cloud APIs
+
+```console
+gcloud services enable compute.googleapis.com
+gcloud services enable container.googleapis.com
+gcloud services enable containerregistry.googleapis.com
+gcloud services enable logging.googleapis.com
+gcloud services enable monitoring.googleapis.com
+```
+
+##### Create a GKE cluster
+
+You can create a GKE cluster via [Cloud Console](https://console.cloud.google.com/kubernetes) or `gcloud` command. Please refer to [the official document](https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-zonal-cluster). Here is the sample command to create a cluster for this demo.
+
+```console
+$ gcloud container clusters create reporting-api-demo-cluster \
+  --release-channel=stable \
+  --zone=us-central1-b \
+  --machine-type=e2-standard-2 \
+  --num-nodes=2
+
+Creating cluster reporting-api-demo-cluster in us-central1-b...done.
+Created [https://container.googleapis.com/v1/projects/<project_id>/zones/us-central1-b/clusters/reporting-api-demo-cluster].
+To inspect the contents of your cluster, go to: https://console.cloud.google.com/kubernetes/workload_/gcloud/us-central1-b/reporting-api-demo-cluster?project=<project_id>
+kubeconfig entry generated for reporting-api-demo-cluster.
+
+NAME                        LOCATION       MASTER_VERSION    MASTER_IP       MACHINE_TYPE   NODE_VERSION      NUM_NODES  STATUS
+reporting-api-demo-cluster  us-central1-b  1.19.13-gke.1200  34.133.154.139  e2-standard-2  1.19.13-gke.1200  2          RUNNING
+```
+
+Note that `gcloud container clusters create` command automatically generates the necessary kubeconfig entry for `kubectl` to work with the cluster.
+##### Reserve static IP address and set DNS record
+
+In this demo, you will use "VPC Network" setting to obetain external static IP address. See the details in [this document.](https://cloud.google.com/compute/docs/ip-addresses/reserve-static-external-ip-address)
+
+You can reserve a static external IP with the following command:
+
+```console
+$ gcloud compute addresses create reporting-api \
+  --global \
+  --ip-version IPV4
+
+Created [https://www.googleapis.com/compute/v1/projects/<project_id>/global/addresses/reporting-api].
+```
+
+After seeing this successful message, you can confirm the reserved IP address.
+
+```console
+$ gcloud compute addresses describe reportin-api \
+  --global \
+  --format="value(address)"
+
+34.117.46.72
+```
+
+Note this IP address for DNS record setting. For example, in the case of [Google Domains](https://domains.google/), you can configure the DNS record as follows:
+
+![DNS record configurations](./static/image/dns-record.png "Google Domains DNS record edit")
+
+For testing purpose, it's better to set TTL shorter such as 60s.
+
+##### Initialize `kubectl` command
+
+So that `kubectl` (the Kubernetes administration tool) can communicate with the GKE cluster, you need to pass the credential to it. [Google Cloud's document](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl) explains how to configure this in detail. Though already kubeconfig entry is set as mentioned in "Create a GKE cluster" section, just run the command just in case.
+
+```console
+$ gcloud container clusters get-credentials reporting-api-demo-cluster
+Fetching cluster endpoint and auth data.
+kubeconfig entry generated for reporting-api-demo-cluster.
+```
+
+Now you can confirm if the Kubernetes context is properly set.
+
+```console
+$ kubectl config current-context
+gke_<project_id>_us-central1-b_reporting-api-demo-cluster
+```
+
+##### Initialize `skaffold` command
+
+Finally, you can configure `skaffold`. [`skaffold`](https://skaffold.dev/) is a handy tool that manages the development iterations of container images and Kuberenetes deployment.
+
+For this demo, you need to configure the default container registry where `skaffold` push container images to and the GKE cluster pull those out of.
+
+As described in [this document](https://skaffold.dev/docs/environment/image-registries/), set the default repositry.
+
+```console
+$ skaffold config set default-repo gcr.io/$(gcloud config get-value project)/reporting-api
+```
+
+By doing this, `skaffold` command parses the image path in the Kubernetes manifests, and tries to search the image from the repository by completing the default repository path. For example, if your manifest file is configured as follows:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forwarder
+spec:
+  selector:
+    matchLabels:
+      app: forwarder
+  template:
+    metadata:
+      labels:
+        app: forwarder
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: forwarder
+        image: forwarder
+        ports:
+        - containerPort: 8080
+        ...(omit)...
+```
+
+then, the `spec.template.spec.containers[0].iamge` is recognized as `gcr.io/<project_id>/reporting-api/forwarder` instead of `forwarder`.
+
+#### Edit `certificate.yaml`
+
+Before running `skaffold`, you need to specify your custom domain name to `${PROJECT_ROOT}/gke/manifests/certificate.yaml` so that [Google-managed SSL certificates](https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs) will be available for your domain.
+
+Open the `certificate.yaml` file and edit the line of `spec.domains[0]` to have your custom domain.
+
+```yaml
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: reporting-api-cert
+spec:
+  domains:
+  - REPLACE_WITH_YOUR_COSTOM_DOMAIN # eg. reporting.example.com
+```
+
+#### Run `skaffold`
+
+Now you are ready to run `skaffold` to deploy the Kubernetes cluster to GKE.
+
+```console
+$ cd ${PROJECT_ROOT}/gke
+$ skaffold run --tail
+
+Generating tags...
+ - forwarder -> gcr.io/<project_id>/reporting-api/forwarder:7ba4376-dirty
+ - collector -> gcr.io/<project_id>/reporting-api/collector:7ba4376-dirty
+Checking cache...
+ - forwarder: Not found. Building
+ - collector: Not found. Building
+Starting build...
+Building [forwarder]...
+Sending build context to Docker daemon  17.32MB
+Step 1/11 : FROM golang:1.17-bullseye as builder
+ ---> 9f8b89ee4475
+Step 2/11 : WORKDIR /src
+
+...(omit)...
+
+ - deployment.apps/collector created
+ - service/collector created
+Waiting for deployments to stabilize...
+ - deployment/collector: creating container collector
+    - pod/collector-5cbfb8dfd4-bbjgc: creating container collector
+ - deployment/forwarder: creating container forwarder
+    - pod/forwarder-b866cdf54-gh6np: creating container forwarder
+ - deployment/forwarder is ready. [1/2 deployment(s) still pending]
+ - deployment/collector is ready.
+Deployments stabilized in 1 minute 1.717 second
+You can also run [skaffold run --tail] to get the logs
+```
+
+One thing to note is that it takes 15-20 minutes for the certificate manager to take effect, so you may not able to access to your custom domain (eg. `https://reporting.example.com/`) via HTTPS.
+You can confirm the status of the certificate provisioning by `kubectl describe managedcertificate` command.
+
+As you see in `${PROJECT_ROOT}/gke/manifests/certificate.yaml`, your certificate is managed with the name `reporting-api-cert`.
+
+```console
+$ kubectl describe managedcertificate reporting-api-cert
+Name:         reporting-api-cert
+Namespace:    default
+Labels:       app.kubernetes.io/managed-by=skaffold
+              skaffold.dev/run-id=85a43ea1-345c-43d3-9676-9ddf398ccf81
+Annotations:  <none>
+API Version:  networking.gke.io/v1
+
+...(omit)...
+
+Spec:
+  Domains:
+    reporting.example.com
+Status:
+  Certificate Name:    mcrt-2476e85b-385e-4a93-b41c-77c668cd47ce
+  Certificate Status:  Active
+  Domain Status:
+    Domain:     reporting.example.com
+    Status:     Active
+  Expire Time:  2022-01-12T15:50:28.000-08:00
+Events:
+  Type    Reason  Age   From                            Message
+  ----    ------  ----  ----                            -------
+  Normal  Create  17m   managed-certificate-controller  Create SslCertificate mcrt-2476e85b-385e-4a93-b41c-77c668cd47ce
+```
+
+Confirm the value of "Status > Doomain Status > Status" got "Active". (If it is any other values such as "Provisioning", the certificate is not ready yet.)
+Then, you should be able to access `https://reporting.example.com/healthz` and get the result `"OK"` with the status code 200.
+
+```console
+$ curl -vvvv "https://reporting.example.com/healthz"
+*   Trying 35.244.202.19:443...
+* Connected to reporting.example.com (35.244.212.19) port 443 (#0)
+* ALPN, offering h2
+... (omit) ...
+* Connection state changed (MAX_CONCURRENT_STREAMS == 100)!
+< HTTP/2 200
+< content-type: text/plain; charset=UTF-8
+< vary: Origin
+< date: Fri, 15 Oct 2021 11:53:08 GMT
+< content-length: 2
+< via: 1.1 google
+< alt-svc: clear
+<
+* Connection #0 to host reporting.example.com left intact
+OK%
+```
+
 ### Standalone
 
 If you already uses OpenTelemetry Collector and have the monitoring backend, you can run `forwarder` alone.
 
-```
+```console
 cd forwarder
 go build -o forwarder
 COLLECTOR_ADDR=example.com:4317 ./forwarder
@@ -239,7 +496,7 @@ Otherwise, specify the path to both files with the environment variables `CERT_F
 
 If you see `code = PermissionDenied` error on sending metrics to Google Cloud Monitoring, like:
 
-```
+```console
 collector_1   | 2021-09-29T04:03:11.441Z        info    exporterhelper/queued_retry.go:231      Exporting failed. Will retry the request after interval.        {"kind": "exporter", "name": "googlecloud", "error": "rpc error: code = PermissionDenied desc = Permission monitoring.metricDescriptors.create denied (or the resource may not exist).", "interval": "16.812982588s"}
 ```
 
@@ -252,7 +509,7 @@ You can check the following configurations:
 
 If you replace the certification files and observe no changes with `forwarder` container image, `docker-compose` should be running the cache. Try the following command and see how it goes.
 
-```
+```console
 docker-compose build --no-cache
 ```
 
