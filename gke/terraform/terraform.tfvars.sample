@@ -1,0 +1,4 @@
+project_id      = "test-2110181313"
+zone            = "us-central1-b"
+billing_account = "Google Cloud DevRel"
+custom_domain   = "reporting-api.example.com"

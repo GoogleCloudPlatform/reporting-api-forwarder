@@ -13,10 +13,18 @@
 # limitations under the License.
 
 ---
-apiVersion: networking.gke.io/v1
-kind: ManagedCertificate
+apiVersion: networking.k8s.io/v1
+kind: Ingress
 metadata:
-  name: reporting-api-cert
+  name: reporting-api-cert-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: "${static_ip_name}"
+    networking.gke.io/managed-certificates: reporting-api-cert
+    kubernetes.io/ingress.clas: "gce"
+    ingress.kubernetes.io/enable-cors: "true"
 spec:
-  domains:
-  - REPLACE_WITH_YOUR_COSTOM_DOMAIN # eg. reporting.example.com
+  defaultBackend:
+    service:
+      name: forwarder-svc-external
+      port:
+        number: 8080

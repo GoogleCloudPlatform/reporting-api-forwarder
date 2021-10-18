@@ -16,7 +16,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: forwarder-svc-external
+  name: ${static_ip_name}
 spec:
   selector:
     app: forwarder
