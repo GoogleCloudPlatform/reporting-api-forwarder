@@ -21,6 +21,16 @@ The interaction of each components is described as below:
 ![Diagram](./static/image/overall-diagram.png "diagram")
 ## How to try this sample
 
+This repository comes with a couple of sets of configurations to try the forwarder. The options are:
+
+1. With Cloud Monitoring
+2. 2With Prometheus and Grafana
+3. Running on Google Kubernetes Engine
+
+Option 1 and 2 run a set of containers on the local environment and option 3 runs them on Google Cloud.
+
+Option 1 and 3 require Google Cloud account with billing set up, and may end up some charges. If it is your first time to try Google Cloud, refer to [Google Cloud Free Program](https://cloud.google.com/free/docs/gcp-free-tier) which provides 300USD tree tier for 90 days.
+
 ### Prerequisites
 
 * [Docker Engine](https://docs.docker.com/engine/install/)
@@ -32,10 +42,16 @@ The interaction of each components is described as below:
 * Google Cloud project and [`gcloud`](https://cloud.google.com/sdk/docs/install) command
   * For the case "With Cloud Monitoring" and "Running on Google Kubernetes Engine"
 
-* [`kubectl`](https://kubernetes.io/docs/tasks/tools/#kubectl) and [`skaffold`](https://skaffold.dev/docs/install/)
+* [`kubectl`](https://kubernetes.io/docs/tasks/tools/#kubectl)
   * For the case "Running on Google Kubernetes Engine"
 
-`kubectl` and `skaffold` are also available via `gcloud components install` command. See [the document](https://cloud.google.com/sdk/docs/components) on how to install those command via `gcloud`.
+* [`skaffold`](https://skaffold.dev/docs/install/)
+  * For the case "Running on Google Kubernetes Engine"
+
+* [`terraform`](https://learn.hashicorp.com/tutorials/terraform/install-cli)
+  * For the case "Running on Google Kubernetes Engine"
+
+`kubectl` and `skaffold` are available via `gcloud components install` command. See [the document](https://cloud.google.com/sdk/docs/components) on how to install those command via `gcloud`.
 
 ### With Cloud Monitoring
 
@@ -101,6 +117,7 @@ As you can confirm in `docker-compose.yaml`, this demo uses the following ports:
 |Port in localhost|Service using the port|Port in services|Purpose|
 |-----------------|----------------------|----------------|-------|
 |30443|forwarder|30443|HTTPS server endpoint|
+|8080|forwarder|8080|HTTP server endpoint|
 |4317|collector|4317|OTLP gRPC endpoint|
 |4318|collector|4318|OTLP HTTP endpoint|
 |9990|collector|9990|Prometheus exporter endpoint|
@@ -212,6 +229,7 @@ This docker-compose uses the following ports:
 |Port in localhost|Service using the port|Port in services|Purpose|
 |-----------------|----------------------|----------------|-------|
 |30443|forwarder|30443|HTTPS server endpoint|
+|8080|forwarder|8080|HTTP server endpoint|
 |4317|collector|4317|OTLP gRPC endpoint|
 |4318|collector|4318|OTLP HTTP endpoint|
 |9990|collector|9990|Prometheus exporter endpoint|
@@ -229,10 +247,15 @@ Also you can access to [the pre-defined dashboard of Grafana](http://localhost:3
 ### Running on Google Kubernetes Engine
 
 This repository also contains the way to run the demo on [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine) to share the demo in public with the team. Note that this is just a demo, so **do not use this demo as-is for production.**
+
+> **NOTE:** This script creates a new Google Cloud project.
 #### Prerequisites
 
-To deploy this demo onto a GKE Cluster, you need to have the following commands in your environment.
+First, to deploy this demo onto a GKE Cluster, you need to have [a billing account](https://cloud.google.com/billing/docs/how-to/manage-billing-account).
 
+Also, you need to have the following commands in your environment.
+
+* [`terraform`](https://learn.hashicorp.com/tutorials/terraform/install-cli)
 * `gcloud`
 * [Docker Engine](https://docs.docker.com/engine/install/)
 * [`kubectl`](https://kubernetes.io/docs/reference/kubectl/overview/)
@@ -240,151 +263,76 @@ To deploy this demo onto a GKE Cluster, you need to have the following commands 
 
 Make sure to install these commands in advance. Also, the demo needs to have **a custom domain** (eg. `reporting.example.com`). You will need to add a DNS record for it later on.
 
-#### Set up Google Cloud
+#### Deploy a Kubernetes cluster to GKE
 
-In order to deploy and run the demo on GKE, you need to have a couple of set up in addition:
+In order to deploy and run the demo on GKE and to make it accessible in HTTPS, you need some preparations in advance and to run some commands.
 
 * Prepare a custom domain for the demo
-* Enabling APIs for GCE, GKE, Cloud Monitoring, Cloud Logging, Container Registry
-* Create a GKE cluster
-* Reserve static IP address
-* Initialize `kubectl` and `skaffold` command
+* Run Terraform script
+* Register a DNS record to the domain registerer
 
 ##### Prepare a custom domain
 
-You can use any registerer to obtain the custom domain for the demo if you don't have any. If you already have one, you may want to add a subdomain for the demo. The external IP address will be reserved later.
-##### Enabling Google Cloud APIs
+Because this demo uses [Google-managed SSL certificates](https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs), you need to prepare a custom domain for the demo in advance.
+
+The domain name can be anything that you own and you can edit a DNS record for it. Note the custom domain name (eg. `reporting-api.example.com`), which will be used to specify in the configuration file in the next step.
+
+##### Run Terraform script
+
+Change the current directory to `${PROJECT_ROOT}/gke/terraform` and dupulicate `terraform.tfvars.sample` as `terraform.tfvars`. Open `terraform.tfvars` and edit the variables there:
+
+* `zone`: Google Cloud zone name. Find your most comfortable zone from [this page.](https://cloud.google.com/compute/docs/regions-zones)
+* `custom_domain`: The custom domain name that you prepared in the previous step
+* `billing_account`: The billing account you use for the demo.
+
+Once the configuration is done, then you can run the following script in the same directory as `terraform.tfvars` and other `*.tf` files. First, initialize the terraform project with `terraform init` command.
 
 ```console
-gcloud services enable compute.googleapis.com
-gcloud services enable container.googleapis.com
-gcloud services enable containerregistry.googleapis.com
-gcloud services enable logging.googleapis.com
-gcloud services enable monitoring.googleapis.com
+$ terraform init
+
+Initializing the backend...
+
+Initializing provider plugins...
+...(omit)...
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
 ```
 
-##### Create a GKE cluster
-
-You can create a GKE cluster via [Cloud Console](https://console.cloud.google.com/kubernetes) or `gcloud` command. Please refer to [the official document](https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-zonal-cluster). Here is the sample command to create a cluster for this demo.
+This commands installs all dependencies into your environment. Now you can run `terraform plan` command.
 
 ```console
-$ gcloud container clusters create reporting-api-demo-cluster \
-  --release-channel=stable \
-  --zone=us-central1-b \
-  --machine-type=e2-standard-2 \
-  --num-nodes=2
-
-Creating cluster reporting-api-demo-cluster in us-central1-b...done.
-Created [https://container.googleapis.com/v1/projects/<project_id>/zones/us-central1-b/clusters/reporting-api-demo-cluster].
-To inspect the contents of your cluster, go to: https://console.cloud.google.com/kubernetes/workload_/gcloud/us-central1-b/reporting-api-demo-cluster?project=<project_id>
-kubeconfig entry generated for reporting-api-demo-cluster.
-
-NAME                        LOCATION       MASTER_VERSION    MASTER_IP       MACHINE_TYPE   NODE_VERSION      NUM_NODES  STATUS
-reporting-api-demo-cluster  us-central1-b  1.19.13-gke.1200  34.133.154.139  e2-standard-2  1.19.13-gke.1200  2          RUNNING
+$ terraform plan
 ```
 
-Note that `gcloud container clusters create` command automatically generates the necessary kubeconfig entry for `kubectl` to work with the cluster.
-##### Reserve static IP address and set DNS record
-
-In this demo, you will use "VPC Network" setting to obetain external static IP address. See the details in [this document.](https://cloud.google.com/compute/docs/ip-addresses/reserve-static-external-ip-address)
-
-You can reserve a static external IP with the following command:
+Confirm that you don't see any errors with this command. (If you see any, please report the issue.) Then you finally run `terraform apply` command. Note that Terraform utilizes the application default credentials, so make sure that the credenatial has enough access such as `roles/owner`.
 
 ```console
-$ gcloud compute addresses create reporting-api \
-  --global \
-  --ip-version IPV4
+$ terraform apply -auto-approve
+...(omit)...
+local_file.ingress_yaml: Creating...
+local_file.ingress_yaml: Creation complete after 0s [id=37e6389892e235ae53b3910082c3c047ec609252]
 
-Created [https://www.googleapis.com/compute/v1/projects/<project_id>/global/addresses/reporting-api].
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+container_registry_path = "us-central1-docker.pkg.dev/<project_id>/reporting-api-registry"
+reporting_api_endpoint_ip_address = "34.96.121.153"
 ```
 
-After seeing this successful message, you can confirm the reserved IP address.
-
-```console
-$ gcloud compute addresses describe reportin-api \
-  --global \
-  --format="value(address)"
-
-34.117.46.72
-```
-
-Note this IP address for DNS record setting. For example, in the case of [Google Domains](https://domains.google/), you can configure the DNS record as follows:
+You will see a bunch of logs on the screen. The process may take 10 minutes or more, so be patient until it successfully finish applying the changes to the project. As a result, you will see the section at the bottom starting with "Outputs:". See the IP address at the bottom and register the address in the DNS record setting of your custom domain. For example, in the case of [Google Domains](https://domains.google/), you can configure the DNS record as follows:
 
 ![DNS record configurations](./static/image/dns-record.png "Google Domains DNS record edit")
 
 For testing purpose, it's better to set TTL shorter such as 60s.
-
-##### Initialize `kubectl` command
-
-So that `kubectl` (the Kubernetes administration tool) can communicate with the GKE cluster, you need to pass the credential to it. [Google Cloud's document](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl) explains how to configure this in detail. Though already kubeconfig entry is set as mentioned in "Create a GKE cluster" section, just run the command just in case.
-
-```console
-$ gcloud container clusters get-credentials reporting-api-demo-cluster
-Fetching cluster endpoint and auth data.
-kubeconfig entry generated for reporting-api-demo-cluster.
-```
-
-Now you can confirm if the Kubernetes context is properly set.
-
-```console
-$ kubectl config current-context
-gke_<project_id>_us-central1-b_reporting-api-demo-cluster
-```
-
-##### Initialize `skaffold` command
-
-Finally, you can configure `skaffold`. [`skaffold`](https://skaffold.dev/) is a handy tool that manages the development iterations of container images and Kuberenetes deployment.
-
-For this demo, you need to configure the default container registry where `skaffold` push container images to and the GKE cluster pull those out of.
-
-As described in [this document](https://skaffold.dev/docs/environment/image-registries/), set the default repositry.
-
-```console
-$ skaffold config set default-repo gcr.io/$(gcloud config get-value project)/reporting-api
-```
-
-By doing this, `skaffold` command parses the image path in the Kubernetes manifests, and tries to search the image from the repository by completing the default repository path. For example, if your manifest file is configured as follows:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: forwarder
-spec:
-  selector:
-    matchLabels:
-      app: forwarder
-  template:
-    metadata:
-      labels:
-        app: forwarder
-    spec:
-      terminationGracePeriodSeconds: 5
-      containers:
-      - name: forwarder
-        image: forwarder
-        ports:
-        - containerPort: 8080
-        ...(omit)...
-```
-
-then, the `spec.template.spec.containers[0].iamge` is recognized as `gcr.io/<project_id>/reporting-api/forwarder` instead of `forwarder`.
-
-#### Edit `certificate.yaml`
-
-Before running `skaffold`, you need to specify your custom domain name to `${PROJECT_ROOT}/gke/manifests/certificate.yaml` so that [Google-managed SSL certificates](https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs) will be available for your domain.
-
-Open the `certificate.yaml` file and edit the line of `spec.domains[0]` to have your custom domain.
-
-```yaml
-apiVersion: networking.gke.io/v1
-kind: ManagedCertificate
-metadata:
-  name: reporting-api-cert
-spec:
-  domains:
-  - REPLACE_WITH_YOUR_COSTOM_DOMAIN # eg. reporting.example.com
-```
 
 #### Run `skaffold`
 
@@ -422,7 +370,7 @@ Deployments stabilized in 1 minute 1.717 second
 You can also run [skaffold run --tail] to get the logs
 ```
 
-One thing to note is that it takes 15-20 minutes for the certificate manager to take effect, so you may not able to access to your custom domain (eg. `https://reporting.example.com/`) via HTTPS.
+One thing to note is that it takes 15-20 minutes for the certificate manager to take effect, so you may not able to access to your custom domain (eg. `https://reporting.example.com/`) via HTTPS until it takes effect.
 You can confirm the status of the certificate provisioning by `kubectl describe managedcertificate` command.
 
 As you see in `${PROJECT_ROOT}/gke/manifests/certificate.yaml`, your certificate is managed with the name `reporting-api-cert`.
@@ -475,6 +423,37 @@ $ curl -vvvv "https://reporting.example.com/healthz"
 * Connection #0 to host reporting.example.com left intact
 OK%
 ```
+
+Now you can specify `https://<your custom domain>` to glitch Reproting API demo client and try how it works in Cloud Monitoring UI as described in "With Cloud Monitoring" section.
+
+
+##### Clean up
+
+After confirming the behavior of Reporting API and Cloud Monitoring, you should shutdown the deme project so that you don't get charged unexpectedly.
+
+First shutdown the application running on the GKE cluster.
+
+```console
+$ skaffold delete
+```
+
+Then you can shutdown the project with Terraform gracefully.
+
+```console
+$ terraform destroy
+...(omit)...
+
+google_project_service.artifact_registry: Still destroying... [id=<project_id>/artifactregistry.googleapis.com, 10s elapsed]
+google_project_service.artifact_registry: Destruction complete after 11s
+google_project.demo_project: Destroying... [id=projects/<project_id>]
+google_project.demo_project: Destruction complete after 3s
+random_string.project_suffix: Destroying... [id=s2la0q]
+random_string.project_suffix: Destruction complete after 0s
+
+Destroy complete! Resources: 20 destroyed.
+```
+
+Finally, confirm that your demo project is not listed on [Google Cloud Console UI](https://console.cloud.google.com/billing/projects) as well.
 
 ### Standalone
 

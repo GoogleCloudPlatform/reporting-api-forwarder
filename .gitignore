@@ -1,16 +1,25 @@
-logs
-*.log
-npm-debug.log*
-pids
-*.pid
-*.seed
-*.pid.lock
-build/Release
-node_modules/
-.npm
-.vscode-test
+# https://github.com/github/gitignore/blob/master/Terraform.gitignore
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.terraform.lock*
 
-*.tfstate*
-.terraform*
-
+# exclude certificates
 forwarder/cert/*
+
+# https://github.com/github/gitignore/blob/master/Global/VisualStudioCode.gitignore
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
