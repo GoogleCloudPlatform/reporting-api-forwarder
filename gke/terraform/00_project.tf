@@ -12,10 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-provider "google" {}
+resource "random_string" "project_suffix" {
+  special = false
+  upper   = false
+  lower   = true
+  number  = true
+  length  = 6
+}
 
-provider "google-beta" {}
+data "google_billing_account" "default" {
+  display_name = var.billing_account
+}
 
-provider "random" {}
+locals {
+  project_id = "reporting-api-${random_string.project_suffix.result}"
+}
 
-provider "local" {}
+resource "google_project" "demo_project" {
+  project_id      = local.project_id
+  name            = local.project_id
+  billing_account = data.google_billing_account.default.id
+}

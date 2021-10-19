@@ -17,11 +17,6 @@ variable "billing_account" {
   type        = string
 }
 
-variable "project_id" {
-  description = "Google Cloud Porject ID to use for demo"
-  type        = string
-}
-
 variable "zone" {
   description = "Google Cloud zone for GKE and Artifact Registry. https://cloud.google.com/compute/docs/regions-zones"
   type        = string

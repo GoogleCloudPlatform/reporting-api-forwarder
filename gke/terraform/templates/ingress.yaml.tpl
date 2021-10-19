@@ -20,7 +20,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.global-static-ip-name: "${static_ip_name}"
     networking.gke.io/managed-certificates: reporting-api-cert
-    kubernetes.io/ingress.clas: "gce"
+    kubernetes.io/ingress.class: "gce"
     ingress.kubernetes.io/enable-cors: "true"
 spec:
   defaultBackend:

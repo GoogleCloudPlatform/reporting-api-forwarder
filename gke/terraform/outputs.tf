@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+output "demo_project_id" {
+  value = google_project.demo_project.project_id
+}
 output "reporting_api_endpoint_ip_address" {
-  value = google_compute_address.static.address
+  value = google_compute_global_address.static.address
 }
 
 output "container_registry_path" {

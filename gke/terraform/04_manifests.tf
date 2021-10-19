@@ -12,35 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-data "template_file" "service_yaml" {
-  template = file("${path.module}/templates/service.yaml.tpl")
-
-  vars = {
-    static_ip_name = google_compute_address.static.name,
-  }
-}
-
-resource "local_file" "service_yaml" {
-  depends_on = [
-    google_compute_address.static,
-    data.template_file.service_yaml,
-  ]
-
-  content  = data.template_file.service_yaml.rendered
-  filename = "${path.module}/../manifests/service.yaml"
-}
-
 data "template_file" "ingress_yaml" {
   template = file("${path.module}/templates/ingress.yaml.tpl")
 
   vars = {
-    static_ip_name = google_compute_address.static.name,
+    static_ip_name = google_compute_global_address.static.name,
   }
 }
 
 resource "local_file" "ingress_yaml" {
   depends_on = [
-    google_compute_address.static,
+    google_compute_global_address.static,
     data.template_file.ingress_yaml,
   ]
 

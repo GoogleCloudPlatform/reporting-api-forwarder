@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-resource "google_compute_address" "static" {
-  name         = "reporting-api-external"
+resource "google_compute_global_address" "static" {
+  provider = google-beta
+  name     = "reporting-api-external"
+  project  = google_project.demo_project.project_id
+  depends_on = [
+    google_project_service.gce,
+  ]
   description  = "Static IP Address for Reporting API endpoint"
   address_type = "EXTERNAL"
-  network_tier = "PREMIUM"
-  region       = local.region
 }

@@ -42,22 +42,18 @@ data "google_billing_account" "account" {
   display_name = var.billing_account
 }
 
-data "google_project" "project" {
-  project_id = var.project_id
-}
-
 locals {
   region = join("-", slice(split("-", var.zone), 0, 2))
 }
 
 resource "google_project_service" "iam" {
-  project                    = data.google_project.project.project_id
+  project                    = google_project.demo_project.project_id
   service                    = "iam.googleapis.com"
   disable_dependent_services = true
 }
 
 resource "google_project_service" "gce" {
-  project = data.google_project.project.project_id
+  project = google_project.demo_project.project_id
   service = "compute.googleapis.com"
 
   timeouts {
@@ -69,7 +65,7 @@ resource "google_project_service" "gce" {
 }
 
 resource "google_project_service" "gke" {
-  project = data.google_project.project.project_id
+  project = google_project.demo_project.project_id
   service = "container.googleapis.com"
 
   timeouts {
@@ -81,6 +77,7 @@ resource "google_project_service" "gke" {
 }
 
 resource "google_project_service" "artifact_registry" {
+  project = google_project.demo_project.project_id
   service = "artifactregistry.googleapis.com"
 
   timeouts {
@@ -92,7 +89,7 @@ resource "google_project_service" "artifact_registry" {
 }
 
 resource "google_project_service" "logging" {
-  project = data.google_project.project.project_id
+  project = google_project.demo_project.project_id
   service = "logging.googleapis.com"
 
   timeouts {
@@ -104,7 +101,7 @@ resource "google_project_service" "logging" {
 }
 
 resource "google_project_service" "monitoring" {
-  project = data.google_project.project.project_id
+  project = google_project.demo_project.project_id
   service = "monitoring.googleapis.com"
 
   timeouts {

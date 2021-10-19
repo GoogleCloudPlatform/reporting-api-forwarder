@@ -12,5 +12,6 @@ node_modules/
 
 *.tfstate*
 .terraform*
+terraform.tfvars
 
 forwarder/cert/*

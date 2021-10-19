@@ -13,12 +13,14 @@
 // limitations under the License.
 
 resource "google_service_account" "default" {
+  project      = google_project.demo_project.project_id
   account_id   = "reporting-api-demo"
   display_name = "Reporting API demo service account"
 }
 
 resource "google_artifact_registry_repository" "reporting_api" {
   provider = google-beta
+  project  = google_project.demo_project.project_id
   depends_on = [
     google_project_service.artifact_registry,
   ]
@@ -52,6 +54,7 @@ resource "random_string" "cluster_suffix" {
 
 resource "google_container_cluster" "demo_cluster" {
   name     = "reporting-api-demo-cluster-${random_string.cluster_suffix.result}"
+  project  = google_project.demo_project.project_id
   location = var.zone
 
   depends_on = [
@@ -78,6 +81,7 @@ resource "google_container_cluster" "demo_cluster" {
 
 resource "google_container_node_pool" "demo_cluster_preemptible_nodes" {
   name       = "demo-cluster-np-${random_string.cluster_suffix.result}"
+  project    = google_project.demo_project.project_id
   location   = var.zone
   cluster    = google_container_cluster.demo_cluster.name
   node_count = 1

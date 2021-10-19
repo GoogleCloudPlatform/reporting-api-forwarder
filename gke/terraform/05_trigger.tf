@@ -21,7 +21,7 @@ data "template_file" "init" {
   template = file("${path.module}/templates/init.sh.tpl")
 
   vars = {
-    project_id    = var.project_id
+    project_id    = google_project.demo_project.project_id
     cluster_name  = google_container_cluster.demo_cluster.name
     zone          = google_container_cluster.demo_cluster.location
     registry_path = local.registry_path
@@ -31,7 +31,7 @@ data "template_file" "init" {
 resource "null_resource" "current_project" {
   provisioner "local-exec" {
     command = <<-EOT
-      gcloud config set project ${var.project_id}
+      gcloud config set project ${google_project.demo_project.project_id}
       gcloud config set compute/zone ${google_container_cluster.demo_cluster.location}
     EOT
   }
