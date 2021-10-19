@@ -62,25 +62,25 @@ In order to run this sample, you need to set up a Google Cloud project.
 First, you need to create default credentials. Run the following commands for this demo.
 
 ```console
-gcloud auth application-default login
-chmod a+r ~/.config/gcloud/application_default_credentials.json
+$ gcloud auth application-default login
+$ chmod a+r ~/.config/gcloud/application_default_credentials.json
 ```
 > **Note:** The instruction to change file permission of the credntial is just for this demonstration purpose, so after running this demo, please overwrite the permission as it was.
 >
 > ```console
-> chmod go-r ~/.config/gcloud/application_default_credentials.json
+> $ chmod go-r ~/.config/gcloud/application_default_credentials.json
 > ```
 
 Then you need a project where you send the reports to.
 
 ```console
-gcloud projects create reporting-api-demo
+$ gcloud projects create reporting-api-demo
 ```
 
 Once the command is successfully done, enable "Cloud Monitoring API" in the project.
 
 ```console
-gcloud services eanble monitoring
+$ gcloud services eanble monitoring
 ```
 
 #### Prepare forwarder
@@ -99,7 +99,7 @@ $ PROJECT_ID=$(gcloud config get-value project) docker-compose up
 Then you will see the logs like the followings:
 
 ```console
- docker-compose up
+$ docker-compose up
 WARNING: Found orphan containers (reporting-api-forwarder_prometheus_1, reporting-api-forwarder_reporter_1) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up.
 Starting reporting-api-forwarder_collector_1 ... done
 Starting reporting-api-forwarder_forwarder_1 ... done
@@ -460,9 +460,9 @@ Finally, confirm that your demo project is not listed on [Google Cloud Console U
 If you already uses OpenTelemetry Collector and have the monitoring backend, you can run `forwarder` alone.
 
 ```console
-cd forwarder
-go build -o forwarder
-COLLECTOR_ADDR=example.com:4317 ./forwarder
+$ cd forwarder
+$ go build -o forwarder
+$ COLLECTOR_ADDR=example.com:4317 ./forwarder
 ```
 
 Make sure to put your certificate files (`cert.pem` and `key.pem`) in the `cert` file relative to the executor.
@@ -489,7 +489,7 @@ You can check the following configurations:
 If you replace the certification files and observe no changes with `forwarder` container image, `docker-compose` should be running the cache. Try the following command and see how it goes.
 
 ```console
-docker-compose build --no-cache
+$ docker-compose build --no-cache
 ```
 
 ### Permission error of config files
