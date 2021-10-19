@@ -21,6 +21,16 @@ The interaction of each components is described as below:
 ![Diagram](./static/image/overall-diagram.png "diagram")
 ## How to try this sample
 
+This repository comes with a couple of sets of configurations to try the forwarder. The options are:
+
+1. With Cloud Monitoring
+2. 2With Prometheus and Grafana
+3. Running on Google Kubernetes Engine
+
+Option 1 and 2 run a set of containers on the local environment and option 3 runs them on Google Cloud.
+
+Option 1 and 3 require Google Cloud account with billing set up, and may end up some charges. If it is your first time to try Google Cloud, refer to [Google Cloud Free Program](https://cloud.google.com/free/docs/gcp-free-tier) which provides 300USD tree tier for 90 days.
+
 ### Prerequisites
 
 * [Docker Engine](https://docs.docker.com/engine/install/)
@@ -237,6 +247,8 @@ Also you can access to [the pre-defined dashboard of Grafana](http://localhost:3
 ### Running on Google Kubernetes Engine
 
 This repository also contains the way to run the demo on [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine) to share the demo in public with the team. Note that this is just a demo, so **do not use this demo as-is for production.**
+
+> **NOTE:** This script creates a new Google Cloud project.
 #### Prerequisites
 
 First, to deploy this demo onto a GKE Cluster, you need to have [a billing account](https://cloud.google.com/billing/docs/how-to/manage-billing-account).
