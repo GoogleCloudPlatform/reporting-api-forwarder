@@ -402,7 +402,7 @@ Events:
   Normal  Create  17m   managed-certificate-controller  Create SslCertificate mcrt-2476e85b-385e-4a93-b41c-77c668cd47ce
 ```
 
-Confirm the value of "Status > Doomain Status > Status" got "Active". (If it is any other values such as "Provisioning", the certificate is not ready yet.)
+Confirm the value of "Status > Domain Status > Status" got "Active". (If it is any other values such as "Provisioning", the certificate is not ready yet.)
 Then, you should be able to access `https://reporting.example.com/healthz` and get the result `"OK"` with the status code 200.
 
 ```console
