@@ -21,6 +21,7 @@ resource "random_string" "project_suffix" {
 }
 
 data "google_billing_account" "default" {
+  count        = var.billing_account != null ? 1 : 0
   display_name = var.billing_account
 }
 
