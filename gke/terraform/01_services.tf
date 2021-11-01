@@ -37,11 +37,6 @@ terraform {
   }
 }
 
-data "google_billing_account" "account" {
-  count        = var.billing_account != null ? 1 : 0
-  display_name = var.billing_account
-}
-
 locals {
   region = join("-", slice(split("-", var.zone), 0, 2))
 }

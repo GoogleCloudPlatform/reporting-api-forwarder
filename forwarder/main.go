@@ -37,7 +37,7 @@ import (
 )
 
 const (
-	instrumentationVersion = "0.1.0.dev"
+	instrumentationVersion = "0.1.0"
 	instrumentationName    = "reporting-api-forwarder"
 )
 
@@ -93,13 +93,13 @@ func installPipeline(ctx context.Context) func() {
 	}
 
 	pusher := controller.New(
-		processor.New(
+		processor.NewFactory(
 			simple.NewWithExactDistribution(),
 			exporter,
 		),
 		controller.WithExporter(exporter),
 	)
-	global.SetMeterProvider(pusher.MeterProvider())
+	global.SetMeterProvider(pusher)
 	if err = pusher.Start(ctx); err != nil {
 		logger.Fatal().Msgf("failed to start push controller: %v", err)
 	}
