@@ -27,7 +27,7 @@ services:
     ports:
     - "9090:9090"
   grafana:
-    image: grafana/grafana:8.1.5
+    image: grafana/grafana:8.5.27
     ports:
     - "3000:3000"
     user: "104"
