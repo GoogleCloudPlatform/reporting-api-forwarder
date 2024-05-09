@@ -20,7 +20,7 @@ services:
     depends_on:
     - prometheus
   prometheus:
-    image: prom/prometheus:v2.30.0
+    image: prom/prometheus:v2.52.0
     volumes:
     - ./prometheus/config.yaml:/etc/prometheus/config.yaml
     entrypoint: ['prometheus', '--config.file', '/etc/prometheus/config.yaml']
