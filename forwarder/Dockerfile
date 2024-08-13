@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.22-bullseye as builder
+FROM golang:1.23-bullseye as builder
 WORKDIR /src
 COPY . .
 RUN go mod download
